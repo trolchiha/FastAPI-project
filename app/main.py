@@ -1,30 +1,14 @@
-from typing import Optional
-from fastapi import FastAPI, status, HTTPException
-from pydantic import BaseModel
+from fastapi import Depends, FastAPI, Response, status, HTTPException
 from random import randrange
-import psycopg2
-import time
-from psycopg2.extras import RealDictCursor
+from sqlalchemy.orm import Session
+from . import models, schemas
+from .database import engine, get_db
+
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-class Post(BaseModel):
-    title: str
-    content: str
-    is_published: bool = True
-    rating: Optional[int] = None
-
-while True:
-    try:
-        connection = psycopg2.connect(host="localhost", database="fastapi_db", user="postgres", 
-                                    password="postgres", cursor_factory=RealDictCursor)
-        cursor = connection.cursor()
-        print("Connected to the database")
-        break
-    except Exception as error:
-        print("Connection to the database failed")
-        print("Error: ", error)
-        time.sleep(3)
 
 @app.get("/")
 def read_root():
@@ -32,50 +16,48 @@ def read_root():
 
 
 @app.get("/posts")
-def get_posts():
-    cursor.execute("""SELECT * FROM posts""")
-    posts = cursor.fetchall()
+def get_posts(db: Session = Depends(get_db)):
+    posts = db.query(models.Post).all()
     return {"data": posts}
 
 
+@app.post("/posts", status_code=status.HTTP_201_CREATED)
+def create_post(post: schemas.Post, db: Session = Depends(get_db)):
+    new_post = models.Post(**post.model_dump())
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+    return {"data": new_post}
+
+
 @app.get("/posts/{id}")
-def get_post(id: int):
-    cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
-    post = cursor.fetchone()
-    print(post)
+def get_post(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id} was not found")
     return {"post_detail": post}
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post):
-    cursor.execute("""INSERT INTO posts (title, content, is_published) VALUES (%s, %s, %s) RETURNING * """, 
-                  (post.title, post.content, post.is_published))
-    new_post = cursor.fetchone()
-    connection.commit()
-    return {"data": new_post}
-
-
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int):
-    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
-    deleted_post = cursor.fetchone()
-    connection.commit()
-    if not deleted_post:
+def delete_post(id: int, db: Session = Depends(get_db)):
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+   
+    if not post_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} was not found")
-    return {"data": deleted_post}
+    post_query.delete(synchronize_session=False)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.put("/posts/{id}")
-def update_post(id: int, post: Post):
-    cursor.execute("""UPDATE posts SET title = %s, content = %s, is_published = %s WHERE id = %s RETURNING * """, 
-                  (post.title, post.content, post.is_published, str(id)))
-    updated_post = cursor.fetchone()
-    connection.commit()
-    if not updated_post:
+def update_post(id: int, post: schemas.Post, db: Session = Depends(get_db)):
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    if not post_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} was not found")
-    return {"data": updated_post}
+    
+    post_query.update(post.model_dump(), synchronize_session=False)
+    db.commit()
+    return {"data": post_query.first()}
