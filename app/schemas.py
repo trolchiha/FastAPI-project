@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, conint
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -46,3 +46,7 @@ class TokenData(BaseModel):
 
     id: Optional[str] = None
     
+
+class Vote(BaseModel):
+    post_id: int
+    dir: conint(le=1) # type: ignore
