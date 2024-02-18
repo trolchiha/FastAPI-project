@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, conint
 
@@ -24,18 +25,27 @@ class PostBase(BaseModel):
     title: str
     content: str
     is_published: bool = True
-    
-class CreatePost(PostBase):
+
+class PostCreate(PostBase):
     pass
 
 class Post(PostBase):
     id: int
+    created_at: datetime
     owner_id: int
     owner: UserOut
-    
+
     class Config:
         from_attributes = True
 
+
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+
+    class Config:
+        from_attributes = True
+ 
 
 class Token(BaseModel):
     access_token: str
