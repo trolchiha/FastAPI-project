@@ -25,4 +25,4 @@ app.include_router(vote.router)
 
 @app.get("/")
 def main_page():
-    return {"message": "Hello World!"}
+    return {"message": "Hello World! pushing out to ubuntu server!"}
