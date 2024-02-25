@@ -10,9 +10,9 @@ on:
       
 jobs:
   build:
-  environment:
+    environment:
       name: testing
-      env:
+    env:
       DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
       DATABASE_PORT: ${{secrets.DATABASE_PORT}}
       DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
@@ -21,14 +21,13 @@ jobs:
       SECRET_KEY: ${{secrets.SECRET_KEY}}
       ALGORITHM: ${{secrets.ALGORITHM}}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${{secrets.ACCESS_TOKEN_EXPIRE_MINUTES}}
-      
-      service:
+
+    services:
       postgres:
         image: postgres
         env:
-          POSTGRES_USER: ${{secrets.DATABASE_USERNAME}}
           POSTGRES_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
-          POSTGRES_DB: ${{secrets.DATABASE_NAME}}
+          POSTGRES_DB: ${{secrets.DATABASE_NAME}}_test
         ports:
           - 5432:5432
         options: >-
@@ -37,8 +36,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     
-      runs-on: ubuntu-latest
-      steps:
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
