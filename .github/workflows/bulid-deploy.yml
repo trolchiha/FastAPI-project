@@ -97,6 +97,6 @@ jobs:
           username: ${{secrets.SSH_USERNAME}}
           script: |
             echo "ssh connected"
-            cd fastapi-app/src
+            cd /home/olena/fastapi-app/src
             git pull
             sudo systemctl restart fastapi
