@@ -65,7 +65,6 @@ Update the environment variables in the `.env` file or Docker environment config
 ## Usage
 
 - Access the API at `http://localhost:8000`
-- Interactive API documentation is available at `http://localhost:8000/docs`
 
 ## API Endpoints
 
